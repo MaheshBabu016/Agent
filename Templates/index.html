@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Agent Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Auto-refresh every 1 hour
+        setTimeout(() => location.reload(), 3600000);
+
+        function renderCharts(stockData) {
+            stockData.forEach((stock, index) => {
+                const ctx = document.getElementById('chart-' + index);
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: stock.dates,
+                        datasets: [{
+                            label: stock.ticker + ' (5 Days)',
+                            data: stock.prices,
+                            borderColor: '#007bff',
+                            fill: false,
+                            tension: 0.2
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { display: false } } }
+                });
+            });
+        }
+
+        window.onload = () => {
+            const data = JSON.parse('{{ results | tojson | safe }}');
+            renderCharts(data);
+        };
+    </script>
+</head>
+<body>
+    <h1>📈 Stock Agent Dashboard</h1>
+    <form method="POST">
+        <input type="text" name="tickers" placeholder="Enter tickers (AAPL, TSLA, MSFT)" required>
+        <button type="submit">Fetch</button>
+    </form>
+
+    {% for stock in results %}
+    <div class="card">
+        <h2>{{ stock.ticker }}</h2>
+        {% if stock.error %}
+        <p class="error">{{ stock.error }}</p>
+        {% else %}
+        <p><b>Price:</b> ${{ stock.price }}</p>
+        <p><b>Market Cap:</b> {{ stock.marketCap }}</p>
+        <p><b>Volume:</b> {{ stock.volume }}</p>
+        <p><b>Open:</b> {{ stock.open }}</p>
+        <p><b>Prev Close:</b> {{ stock.previousClose }}</p>
+        <p><b>Sentiment:</b> {{ stock.sentiment }}</p>
+
+        <canvas id="chart-{{ loop.index0 }}" width="300" height="150"></canvas>
+
+        <h4>📰 Latest News</h4>
+        <ul>
+            {% for n in stock.news %}
+            <li><a href="{{ n.link }}" target="_blank">{{ n.title }}</a></li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endfor %}
+</body>
+</html>
+
